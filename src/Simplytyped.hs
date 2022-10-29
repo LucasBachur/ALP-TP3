@@ -60,6 +60,12 @@ quote (VLam t f) = Lam t f
 --- type checker
 -----------------------
 
+{- Ejercicio 1
+  La funcion infer retorna Either String Type, y no solo Type, porque puede ocurrir un error
+  cuando se intenta determina el tipo de un Term. En el caso de que no se pueda inferir se
+  detecta el error y se propaga en la ejecucion del programa.
+-}
+
 -- type checker
 infer :: NameEnv Value Type -> Term -> Either String Type
 infer = infer' []
@@ -70,6 +76,13 @@ ret = Right
 
 err :: String -> Either String Type
 err = Left
+
+{- Ejercicio 1
+  La funcion (>>=) realiza una evaluacion de los 2 casos posibles del tipo de Either.
+  Toma dos valores: v y f.
+  Si v tiene la forma Left String, el argumento v representa un error y la funcion devuelve este mismo.
+  Si v tiene la forma Right Type, aplica la funcion f a v.
+-}
 
 (>>=)
   :: Either String Type -> (Type -> Either String Type) -> Either String Type
