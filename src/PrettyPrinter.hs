@@ -38,6 +38,14 @@ pp ii vs (Lam t c) =
     <> text ". "
     <> pp (ii + 1) vs c
 
+pp ii vs (Let t1 t2) =
+  text "Let "
+  <> text (vs !! ii)
+  <> text " = "
+  <> pp (ii + 1) vs t1
+  <> text " in "
+  <> pp (ii + 1) vs t2
+
 
 isLam :: Term -> Bool
 isLam (Lam _ _) = True
@@ -63,6 +71,7 @@ fv (Bound _         ) = []
 fv (Free  (Global n)) = [n]
 fv (t   :@: u       ) = fv t ++ fv u
 fv (Lam _   u       ) = fv u
+fv (Let _ u) = fv u
 
 ---
 printTerm :: Term -> Doc
