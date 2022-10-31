@@ -25,7 +25,7 @@ conversion' b (LVar n    )   = maybe (Free (Global n)) Bound (n `elemIndex` b)
 conversion' b (LApp t u  )   = conversion' b t :@: conversion' b u
 conversion' b (LAbs n t u)   = Lam t (conversion' (n : b) u)
 conversion' b (LLet s t1 t2) = Let (conversion' b t1) (conversion' (s : b) t2)
-
+conversion' b (LAs t1 t)    = As (conversion' b t1) t
 
 -----------------------
 --- eval
@@ -38,6 +38,7 @@ sub _ _ (Free n   )           = Free n
 sub i t (u   :@: v)           = sub i t u :@: sub i t v
 sub i t (Lam t'  u)           = Lam t' (sub (i + 1) t u)
 sub i t (Let t1 t2)           = Let (sub i t t1) (sub (i + 1) t t2)
+sub i t (As t1 t)              = As (sub i t t1) t
 
 -- evaluador de términos
 eval :: NameEnv Value Type -> Term -> Value
@@ -50,7 +51,7 @@ eval e (u        :@: v      ) = case eval e u of
   VLam t u' -> eval e (Lam t u' :@: v)
   _         -> error "Error de tipo en run-time, verificar type checker"
 eval e (Let t1 t2)            = let v2 = eval e t1 in eval e (sub 0 (quote v2) t2)
-
+eval e (As t1 t)              = eval e t1
 
 -----------------------
 --- quoting

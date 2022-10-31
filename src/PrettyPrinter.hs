@@ -46,6 +46,10 @@ pp ii vs (Let t1 t2) =
   <> text " in "
   <> pp (ii + 1) vs t2
 
+pp ii vs (As t1 t) = 
+  pp ii vs t1 
+  <> text " as " 
+  <> printType t
 
 isLam :: Term -> Bool
 isLam (Lam _ _) = True
@@ -72,7 +76,7 @@ fv (Free  (Global n)) = [n]
 fv (t   :@: u       ) = fv t ++ fv u
 fv (Lam _   u       ) = fv u
 fv (Let _ u) = fv u
-
+fv (As t1 t)          = fv t1
 ---
 printTerm :: Term -> Doc
 printTerm t = pp 0 (filter (\v -> not $ elem v (fv t)) vars) t
