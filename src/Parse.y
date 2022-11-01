@@ -29,13 +29,18 @@ import Data.Char
     IN      { TIn }
     AS      { TAs }
     UNIT    { TUnit }
-    
+    TYPEN   { TNat }
+    REC     { TRec }
+    SUC     { TSuc }
+    ZERO    { TZero }
 
 %right VAR
 %left '=' 
 %right '->'
 %right '\\' '.' LET IN
 %left AS
+%right REC
+%right SUC
 
 %%
 
@@ -47,6 +52,8 @@ Exp     :: { LamTerm }
         : '\\' VAR ':' Type '.' Exp    { LAbs $2 $4 $6 }
         | LET VAR '=' Exp IN Exp       { LLet $2 $4 $6 }
         | Exp AS Type                  { LAs  $1 $3}
+        | REC Atom Atom Atom           { LRec $2 $3 $4 }
+        | SUC Atom                     { LSuc $2 }
         | NAbs                         { $1 }
         
 NAbs    :: { LamTerm }
@@ -55,13 +62,15 @@ NAbs    :: { LamTerm }
 
 Atom    :: { LamTerm }
         : VAR                          { LVar $1 } 
-        | UNIT                         { LUnit } 
+        | UNIT                         { LUnit }
+        | ZERO                         { LZero } 
         | '(' Exp ')'                  { $2 }
 
 Type    : TYPEE                        { EmptyT }
         | Type '->' Type               { FunT $1 $3 }
         | '(' Type ')'                 { $2 }
         | UNIT                         { UnitT }
+        | TYPEN                        { NatT }
 
 Defs    : Defexp Defs                  { $1 : $2 }
         |                              { [] }
@@ -110,6 +119,10 @@ data Token = TVar String
                | TIn
                | TAs
                | TUnit
+               | TNat
+               | TZero
+               | TSuc
+               | TRec
                deriving Show
 
 ----------------------------------
@@ -130,6 +143,7 @@ lexer cont s = case s of
                     (')':cs) -> cont TClose cs
                     (':':cs) -> cont TColon cs
                     ('=':cs) -> cont TEquals cs
+                    ('0':cs) -> cont TZero cs
                     unknown -> \line -> Failed $ 
                      "Línea "++(show line)++": No se puede reconocer "++(show $ take 10 unknown)++ "..."
                     where lexVar cs = case span isAlpha cs of
@@ -139,6 +153,9 @@ lexer cont s = case s of
                               ("in",rest)   -> cont TIn rest
                               ("as",rest)   -> cont TAs rest
                               ("unit",rest) -> cont TUnit rest
+                              ("Nat", rest) -> cont TNat rest
+                              ("suc",rest)  -> cont TSuc rest
+                              ("R", rest)   -> cont TRec rest
                               (var,rest)    -> cont (TVar var) rest
                           consumirBK anidado cl cont s = case s of
                               ('-':('-':cs)) -> consumirBK anidado cl cont $ dropWhile ((/=) '\n') cs
