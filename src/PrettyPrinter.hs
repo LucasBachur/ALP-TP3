@@ -51,6 +51,8 @@ pp ii vs (As t1 t) =
   <> text " as " 
   <> printType t
 
+pp ii vs (Unit) = text "unit"
+
 isLam :: Term -> Bool
 isLam (Lam _ _) = True
 isLam _         = False
@@ -64,6 +66,7 @@ printType :: Type -> Doc
 printType EmptyT = text "E"
 printType (FunT t1 t2) =
   sep [parensIf (isFun t1) (printType t1), text "->", printType t2]
+printType UnitT = text "Unit"
 
 
 isFun :: Type -> Bool
@@ -77,6 +80,7 @@ fv (t   :@: u       ) = fv t ++ fv u
 fv (Lam _   u       ) = fv u
 fv (Let _ u) = fv u
 fv (As t1 t)          = fv t1
+fv (Unit)             = []
 ---
 printTerm :: Term -> Doc
 printTerm t = pp 0 (filter (\v -> not $ elem v (fv t)) vars) t

@@ -28,6 +28,7 @@ import Data.Char
     LET     { TLet }
     IN      { TIn }
     AS      { TAs }
+    UNIT    { TUnit }
     
 
 %right VAR
@@ -53,12 +54,14 @@ NAbs    :: { LamTerm }
         | Atom                         { $1 }
 
 Atom    :: { LamTerm }
-        : VAR                          { LVar $1 }  
+        : VAR                          { LVar $1 } 
+        | UNIT                         { LUnit } 
         | '(' Exp ')'                  { $2 }
 
 Type    : TYPEE                        { EmptyT }
         | Type '->' Type               { FunT $1 $3 }
         | '(' Type ')'                 { $2 }
+        | UNIT                         { UnitT }
 
 Defs    : Defexp Defs                  { $1 : $2 }
         |                              { [] }
@@ -106,6 +109,7 @@ data Token = TVar String
                | TLet
                | TIn
                | TAs
+               | TUnit
                deriving Show
 
 ----------------------------------
@@ -134,6 +138,7 @@ lexer cont s = case s of
                               ("let",rest)  -> cont TLet rest
                               ("in",rest)   -> cont TIn rest
                               ("as",rest)   -> cont TAs rest
+                              ("unit",rest) -> cont TUnit rest
                               (var,rest)    -> cont (TVar var) rest
                           consumirBK anidado cl cont s = case s of
                               ('-':('-':cs)) -> consumirBK anidado cl cont $ dropWhile ((/=) '\n') cs
