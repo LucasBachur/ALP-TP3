@@ -25,9 +25,11 @@ conversion' b (LVar n    )   = maybe (Free (Global n)) Bound (n `elemIndex` b)
 conversion' b (LApp t u  )   = conversion' b t :@: conversion' b u
 conversion' b (LAbs n t u)   = Lam t (conversion' (n : b) u)
 conversion' b (LLet s t1 t2) = Let (conversion' b t1) (conversion' (s : b) t2)
-conversion' b (LAs t1 t)    = As (conversion' b t1) t
-conversion' b (LUnit)       = Unit
-
+conversion' b (LAs t1 t)     = As (conversion' b t1) t
+conversion' b (LUnit)        = Unit
+conversion' b LZero          = Zero
+conversion' b (LSuc t   )    = Suc (conversion' b t)
+conversion' b (LRec t1 t2 t3)= Rec (conversion' b t1) (conversion' b t2) (conversion' b t3)
 -----------------------
 --- eval
 -----------------------
@@ -41,6 +43,9 @@ sub i t (Lam t'  u)           = Lam t' (sub (i + 1) t u)
 sub i t (Let t1 t2)           = Let (sub i t t1) (sub (i + 1) t t2)
 sub i t (As t1 t2)            = As (sub i t t1) t2
 sub i t (Unit)                = Unit
+sub i t Zero                  = Zero
+sub i t (Suc u   )            = Suc (sub i t u)
+sub i t (Rec t1 t2 t3)        = Rec (sub i t t1) (sub i t t2) (sub i t t3)
 
 -- evaluador de términos
 eval :: NameEnv Value Type -> Term -> Value
@@ -55,7 +60,15 @@ eval e (u        :@: v      ) = case eval e u of
 eval e (Let t1 t2)            = let v2 = eval e t1 in eval e (sub 0 (quote v2) t2)
 eval e (As t1 t)              = eval e t1
 eval e (Unit)                 = VUnit
-
+eval e Zero                   = VNum NZero
+eval e (Suc t              ) = case eval e t of
+  VNum num -> VNum (NSuc num)
+  _        -> error "Error de tipo en run-time, verificar type checker"
+eval e (Rec t1 t2 t3)         = case eval e t3 of
+  VNum VZero        -> eval e t1
+  VNum (VSuc nv)    -> let t = quote (VNum nv)
+                       in eval e ((t2 :@: Rec t1 t2 t) :@: t)
+  _                 -> error "Error de tipo en run-time, verificar type checker"
 -----------------------
 --- quoting
 -----------------------
@@ -63,6 +76,8 @@ eval e (Unit)                 = VUnit
 quote :: Value -> Term
 quote (VLam t f)      = Lam t f
 quote (VUnit)         = Unit
+quote (VNum NZero) = Zero
+quote (VNum (NSuc n)) = Suc (quote (VNum n))
 
 ----------------------
 --- type checker
@@ -113,4 +128,5 @@ infer' c e (Let t1 t2) = infer' c e t1 >>= \tu -> infer' (tu : c) e t2
 infer' c e (As t1 t) = infer' c e t1 >>= \t' ->
                       if t' == t then ret t else matchError t t'
 infer' c e (Unit)    = ret UnitT
+
 ----------------------------------
