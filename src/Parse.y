@@ -75,6 +75,7 @@ Atom    :: { LamTerm }
 
 Type    : TYPEE                        { EmptyT }
         | Type '->' Type               { FunT $1 $3 }
+        | '(' Type ',' Type ')'        { PairT $2 $4 }
         | '(' Type ')'                 { $2 }
         | UNIT                         { UnitT }
         | TYPEN                        { NatT }

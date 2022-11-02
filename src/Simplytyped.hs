@@ -28,6 +28,9 @@ conversion' b (LLet s t1 t2) = Let (conversion' b t1) (conversion' (s : b) t2)
 conversion' b (LAs t1 t)     = As (conversion' b t1) t
 conversion' b (LUnit)        = Unit
 conversion' b LZero          = Zero
+conversion' b (LPair t1 t2)  = Pair (conversion' b t1) (conversion' v t2)
+conversion' b (LFst t)       = Fst (conversion' b t)
+conversion' b (LSnd t)       = Snd (conversion' b t)
 conversion' b (LSuc t   )    = Suc (conversion' b t)
 conversion' b (LRec t1 t2 t3)= Rec (conversion' b t1) (conversion' b t2) (conversion' b t3)
 -----------------------
@@ -41,8 +44,11 @@ sub _ _ (Free n   )           = Free n
 sub i t (u   :@: v)           = sub i t u :@: sub i t v
 sub i t (Lam t'  u)           = Lam t' (sub (i + 1) t u)
 sub i t (Let t1 t2)           = Let (sub i t t1) (sub (i + 1) t t2)
-sub i t (As t1 t2)            = As (sub i t t1) t2
+sub i t (As t' t'')           = As (sub i t t') t''
 sub i t (Unit)                = Unit
+sub i t (Pair t1 t2)          = Pair (sub i t1) (sub i t2)
+sub i t (Fst t')              = Fst (sub i t')
+sub i t (Snd t')              = Snd (sub i t')
 sub i t Zero                  = Zero
 sub i t (Suc u   )            = Suc (sub i t u)
 sub i t (Rec t1 t2 t3)        = Rec (sub i t t1) (sub i t t2) (sub i t t3)
@@ -60,6 +66,15 @@ eval e (u        :@: v      ) = case eval e u of
 eval e (Let t1 t2)            = let v2 = eval e t1 in eval e (sub 0 (quote v2) t2)
 eval e (As t1 t)              = eval e t1
 eval e (Unit)                 = VUnit
+eval e (Pair t1 t2)           = VPair t1' t2'
+                                  where t1' = eval e t1
+                                        t2' = eval e t2
+eval e (Fst t)                = case eval e t of
+  VPair t1 t2 -> t1
+  _           -> error "Error de tipo, solo se puede aplicar fst a una tupla"
+eval e (Snd t)                = case eval e t of
+  VPair t1 t2 -> t2
+  _           -> error "Error de tipo, solo se puede aplicar snd a una tupla"
 eval e Zero                   = VNum NZero
 eval e (Suc t              ) = case eval e t of
   VNum num -> VNum (NSuc num)
@@ -76,7 +91,8 @@ eval e (Rec t1 t2 t3)         = case eval e t3 of
 quote :: Value -> Term
 quote (VLam t f)      = Lam t f
 quote (VUnit)         = Unit
-quote (VNum NZero) = Zero
+quote (VPair t1 t2)   = Pair (quote t1) (quote t2)
+quote (VNum NZero)    = Zero
 quote (VNum (NSuc n)) = Suc (quote (VNum n))
 
 ----------------------
@@ -115,18 +131,18 @@ notfoundError :: Name -> Either String Type
 notfoundError n = err $ show n ++ " no está definida."
 
 infer' :: Context -> NameEnv Value Type -> Term -> Either String Type
-infer' c _ (Bound i)   = ret (c !! i)
-infer' _ e (Free  n)   = case lookup n e of
+infer' c _ (Bound i)    = ret (c !! i)
+infer' _ e (Free  n)    = case lookup n e of
   Nothing     -> notfoundError n
   Just (_, t) -> ret t
-infer' c e (t :@: u)   = infer' c e t >>= \tt -> infer' c e u >>= \tu ->
+infer' c e (t :@: u)    = infer' c e t >>= \tt -> infer' c e u >>= \tu ->
   case tt of
     FunT t1 t2 -> if (tu == t1) then ret t2 else matchError t1 tu
     _          -> notfunError tt
-infer' c e (Lam t u)   = infer' (t : c) e u >>= \tu -> ret $ FunT t tu
-infer' c e (Let t1 t2) = infer' c e t1 >>= \tu -> infer' (tu : c) e t2
-infer' c e (As t1 t) = infer' c e t1 >>= \t' ->
-                      if t' == t then ret t else matchError t t'
-infer' c e (Unit)    = ret UnitT
+infer' c e (Lam t u)    = infer' (t : c) e u >>= \tu -> ret $ FunT t tu
+infer' c e (Let t1 t2)  = infer' c e t1 >>= \tu -> infer' (tu : c) e t2
+infer' c e (As t1 t)    = infer' c e t1 >>= \t' ->
+                           if t' == t then ret t else matchError t t'
+infer' c e (Unit)       = ret UnitT
 
 ----------------------------------
