@@ -80,8 +80,8 @@ eval e (Suc t              ) = case eval e t of
   VNum num -> VNum (NSuc num)
   _        -> error "Error de tipo en run-time, verificar type checker"
 eval e (Rec t1 t2 t3)         = case eval e t3 of
-  VNum VZero        -> eval e t1
-  VNum (VSuc nv)    -> let t = quote (VNum nv)
+  VNum NZero        -> eval e t1
+  VNum (NSuc nv)    -> let t = quote (VNum nv)
                        in eval e ((t2 :@: Rec t1 t2 t) :@: t)
   _                 -> error "Error de tipo en run-time, verificar type checker"
 -----------------------
@@ -144,5 +144,11 @@ infer' c e (Let t1 t2)  = infer' c e t1 >>= \tu -> infer' (tu : c) e t2
 infer' c e (As t1 t)    = infer' c e t1 >>= \t' ->
                            if t' == t then ret t else matchError t t'
 infer' c e (Unit)       = ret UnitT
-
+infer' c e Zero      = ret NatT
+infer' c e (Suc n ) = infer' c e n >>= \tn -> if tn == NatT then ret tn else matchError NatT tn
+infer' c e (Rec t1 t2 t3) = infer' c e t1 >>= \tn1 -> infer' c e t2 >>= \tn2 ->
+    case tn2 of
+        FunT tt1 (FunT NatT tt2) -> if (tt1 == tn1 && tt2 == tn1) then infer' c e t3 >>= \tn3 -> if tn3 == NatT then ret tn1 else matchError NatT tn3
+                                                                  else matchError (FunT tn1 (FunT NatT tn1)) (FunT tt1 (FunT NatT tt2))
+        tt                       -> matchError (FunT tn1 (FunT NatT tn1)) tt
 ----------------------------------
