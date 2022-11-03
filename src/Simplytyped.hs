@@ -69,12 +69,8 @@ eval e (Unit)                 = VUnit
 eval e (Pair t1 t2)           = VPair t1' t2'
                                   where t1' = eval e t1
                                         t2' = eval e t2
-eval e (Fst t)                = case eval e t of
-  VPair t1 t2 -> t1
-  _           -> error "Error de tipo, solo se puede aplicar fst a una tupla"
-eval e (Snd t)                = case eval e t of
-  VPair t1 t2 -> t2
-  _           -> error "Error de tipo, solo se puede aplicar snd a una tupla"
+eval e (Fst (Pair t1 t2))     = eval e t1 
+eval e (Snd (Pair t1 t2))     = eval e t2 
 eval e Zero                   = VNum NZero
 eval e (Suc t              ) = case eval e t of
   VNum num -> VNum (NSuc num)
@@ -144,6 +140,15 @@ infer' c e (Let t1 t2)  = infer' c e t1 >>= \tu -> infer' (tu : c) e t2
 infer' c e (As t1 t)    = infer' c e t1 >>= \t' ->
                            if t' == t then ret t else matchError t t'
 infer' c e (Unit)       = ret UnitT
+infer' c e (Pair t1 t2) = infer' c e t1 >>=
+                          \tt -> infer' c e t2 >>=
+                          \tu -> ret $ PairT tt tu
+infer' c e (Fst t) = infer' c e t >>= \tt ->
+                     case tt of PairT x y -> ret x
+                                _         -> err "No se puede aplicar fst a algo que no es una tupla"
+infer' c e (Snd t) = infer' c e t >>= \tt ->
+                     case tt of PairT x y -> ret y
+                                _         -> err "No se puede aplicar snd a algo que no es una tupla"
 infer' c e Zero      = ret NatT
 infer' c e (Suc n ) = infer' c e n >>= \tn -> if tn == NatT then ret tn else matchError NatT tn
 infer' c e (Rec t1 t2 t3) = infer' c e t1 >>= \tn1 -> infer' c e t2 >>= \tn2 ->

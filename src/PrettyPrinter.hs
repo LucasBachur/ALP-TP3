@@ -53,6 +53,21 @@ pp ii vs (As t1 t) =
 
 pp ii vs (Unit) = text "unit"
 
+pp ii vs (Pair t1 t2) =
+  text "("
+  <> pp ii vs t1
+  <> text ", "
+  <> pp ii vs t2
+  <> text ")"
+
+pp ii vs (Fst t) =
+  text "Fst "
+  <> pp ii vs t
+
+pp ii vs (Snd t) =
+  text "Snd "
+  <> pp ii vs t
+
 pp ii vs (Suc t) = 
     text "suc "
     <> parensIf (notValue t) (pp ii vs t)
@@ -91,6 +106,8 @@ printType EmptyT = text "E"
 printType (FunT t1 t2) =
   sep [parensIf (isFun t1) (printType t1), text "->", printType t2]
 printType UnitT = text "Unit"
+printType (PairT t1 t2) =
+  sep [text "(", printType t1, text ",", printType t2, text ")"]
 printType NatT  = text "Nat"
 
 isFun :: Type -> Bool
@@ -105,6 +122,9 @@ fv (Lam _   u       ) = fv u
 fv (Let _ u)          = fv u
 fv (As t1 t)          = fv t1
 fv (Unit)             = []
+fv (Pair t1 t2)       = fv t1 ++ fv t2
+fv (Fst t)            = fv t
+fv (Snd t)            = fv t
 fv Zero               = []
 fv (Suc t           ) = fv t
 fv (Rec t1 t2 t3    ) = fv t1 ++ fv t2 ++ fv t3
