@@ -1,0 +1,2 @@
+def iter = \f:Nat->Nat.\n:Nat. R (f (suc 0)) (\x:Nat.\z:Nat. f x) n
+def ack = \m:Nat. R (\x:Nat. suc x) (\y:Nat->Nat.\z:Nat. iter y) m
