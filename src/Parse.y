@@ -30,6 +30,7 @@ import Data.Char
     IN      { TIn }
     AS      { TAs }
     UNIT    { TUnit }
+    TUNIT   { TTUnit }
     FST     { TFst }
     SND     { TSnd }
     TYPEN   { TNat }
@@ -77,7 +78,7 @@ Type    : TYPEE                        { EmptyT }
         | Type '->' Type               { FunT $1 $3 }
         | '(' Type ',' Type ')'        { PairT $2 $4 }
         | '(' Type ')'                 { $2 }
-        | UNIT                         { UnitT }
+        | TUNIT                        { UnitT }
         | TYPEN                        { NatT }
 
 Defs    : Defexp Defs                  { $1 : $2 }
@@ -128,6 +129,7 @@ data Token = TVar String
                | TIn
                | TAs
                | TUnit
+               | TTUnit
                | TFst
                | TSnd
                | TNat
@@ -165,6 +167,7 @@ lexer cont s = case s of
                               ("in",rest)   -> cont TIn rest
                               ("as",rest)   -> cont TAs rest
                               ("unit",rest) -> cont TUnit rest
+                              ("Unit",rest) -> cont TTUnit rest
                               ("fst",rest)  -> cont TFst rest
                               ("snd",rest)  -> cont TSnd rest
                               ("Nat",rest)  -> cont TNat rest

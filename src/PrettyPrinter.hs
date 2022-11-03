@@ -61,11 +61,11 @@ pp ii vs (Pair t1 t2) =
   <> text ")"
 
 pp ii vs (Fst t) =
-  text "Fst "
+  text "fst "
   <> pp ii vs t
 
 pp ii vs (Snd t) =
-  text "Snd "
+  text "snd "
   <> pp ii vs t
 
 pp ii vs (Suc t) = 
